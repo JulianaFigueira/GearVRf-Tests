@@ -129,8 +129,9 @@ public class PhysicsSimulationTest {
     public void simultaneousFreeFallTest() throws Exception {
         OnTestStartRenderAllCallback beginCallback = new OnTestStartRenderAllCallback(100);
 
-        gvrTestUtils.waitForXFrames(60);
-        beginCallback.onSceneRendered();
+        gvrTestUtils.setOnRenderCallback(beginCallback);
+        gvrTestUtils.waitForSceneRendering();
+        gvrTestUtils.setOnRenderCallback(null);
 
         beginCallback.mCollisionHandler.startTime = System.currentTimeMillis();
         gvrTestUtils.waitForXFrames(168 + 60 ); // Too many simultaneous events triggered need more time to process all???
@@ -181,6 +182,7 @@ public class PhysicsSimulationTest {
         public GVRSceneObject cube[];
         public GVRSceneObject sphere[];
         public CollisionHandler mCollisionHandler;
+        private boolean objectsAdded = false;
 
         OnTestStartRenderAllCallback (int lenght) {
             cube = new GVRSceneObject[lenght];
@@ -193,6 +195,11 @@ public class PhysicsSimulationTest {
 
         @Override
         public void onSceneRendered() {
+            if (objectsAdded) {
+                return;
+            }
+
+            objectsAdded = true;
             int x = -25;
             int j = 0;
             int k = 10;
@@ -262,7 +269,6 @@ public class PhysicsSimulationTest {
      */
     private GVRSceneObject addSphere(GVRScene scene, ICollisionEvents mCollisionHandler, float x, float y, float z, float mass) {
 
-        //GVRSceneObject sphereObject = meshWithTexture("sphere.obj", "sphere.jpg");
         GVRSceneObject sphereObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), sphereMesh, sphereTexture);
 
         sphereObject.getTransform().setScaleX(0.5f);
@@ -289,7 +295,6 @@ public class PhysicsSimulationTest {
 
     private GVRSceneObject addCube(GVRScene scene, float x, float y, float z, float mass) {
 
-        //GVRSceneObject cubeObject = meshWithTexture("cube.obj", "cube.jpg");
         GVRSceneObject cubeObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), cubeMesh, cubeTexture);
 
         cubeObject.getTransform().setPosition(x, y, z);
