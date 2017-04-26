@@ -2,6 +2,7 @@ package org.gearvrf.tester;
 
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
+import android.util.Log;
 
 import net.jodah.concurrentunit.Waiter;
 
@@ -37,6 +38,12 @@ public class PhysicsSimulationTest {
     private Waiter mWaiter;
     GVRWorld world;
 
+    private GVRAndroidResource cubeMesh = null;
+    private GVRAndroidResource cubeTexture = null;
+
+    private GVRAndroidResource sphereMesh = null;
+    private GVRAndroidResource sphereTexture = null;
+
     @Rule
     public ActivityTestRule<GVRTestableActivity> ActivityRule = new
             ActivityTestRule<GVRTestableActivity>(GVRTestableActivity.class);
@@ -56,6 +63,15 @@ public class PhysicsSimulationTest {
 
         gvrTestUtils = new GVRTestUtils(ActivityRule.getActivity(), initCallback);
         gvrTestUtils.waitForOnInit();
+
+        try {
+            cubeMesh = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.obj");
+            cubeTexture = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.jpg");
+            sphereMesh = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.obj");
+            sphereTexture = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.jpg");
+        } catch (IOException e) {
+
+        }
     }
 
     @Test
@@ -111,10 +127,11 @@ public class PhysicsSimulationTest {
 
     @Test
     public void simultaneousFreeFallTest() throws Exception {
-        OnTestStartRenderAllCallback beginCallback = new OnTestStartRenderAllCallback();
-        gvrTestUtils.setOnRenderCallback(beginCallback);
-        gvrTestUtils.waitForSceneRendering();
-        gvrTestUtils.setOnRenderCallback(null);
+        OnTestStartRenderAllCallback beginCallback = new OnTestStartRenderAllCallback(100);
+
+        gvrTestUtils.waitForXFrames(60);
+        beginCallback.onSceneRendered();
+
         beginCallback.mCollisionHandler.startTime = System.currentTimeMillis();
         gvrTestUtils.waitForXFrames(168 + 60 ); // Too many simultaneous events triggered need more time to process all???
 
@@ -165,23 +182,34 @@ public class PhysicsSimulationTest {
         public GVRSceneObject sphere[];
         public CollisionHandler mCollisionHandler;
 
-        OnTestStartRenderAllCallback () {
-            cube = new GVRSceneObject[100];
-            sphere  = new GVRSceneObject[100];
+        OnTestStartRenderAllCallback (int lenght) {
+            cube = new GVRSceneObject[lenght];
+            sphere  = new GVRSceneObject[lenght];
             mCollisionHandler = new CollisionHandler();
             mCollisionHandler.extimatedTime = 2800; //... + round up
             mCollisionHandler.collisionCounter = 0;
-            lenght = 100;
+            this.lenght = lenght;
         }
 
         @Override
         public void onSceneRendered() {
+            int x = -25;
+            int j = 0;
+            int k = 10;
+            int z = -10;
+            int step = 50 / k;
+
             world.setEnable(false);
-            int k = -250;
             for(int i = 0; i < lenght; i++) {
-                k += 5;
-                cube[i] = addCube(gvrTestUtils.getMainScene(), (float)k, 1.0f, -10.0f, 0.0f);
-                sphere[i] = addSphere(gvrTestUtils.getMainScene(), mCollisionHandler, (float)k, 40.0f, -10.0f, 1.0f);
+                x += step;
+                cube[i] = addCube(gvrTestUtils.getMainScene(), (float)x, 1.0f, (float)z, 0.0f);
+                sphere[i] = addSphere(gvrTestUtils.getMainScene(), mCollisionHandler, (float)x, 40.0f, (float)z, 1.0f);
+                j++;
+                if (j == k) {
+                    x = -25;
+                    z -= 10;
+                    j = 0;
+                }
             }
             world.setEnable(true);
         }
@@ -192,6 +220,7 @@ public class PhysicsSimulationTest {
         for(int i = 0; i < lenght; i++) {
             float d = (sphere[i].getTransform().getPositionY() - cube[i].getTransform().getPositionY());
             //sphere is on top of the cube
+
             mWaiter.assertTrue( d <= 1.6f);
             mWaiter.assertTrue(sphere[i].getTransform().getPositionX() == cube[i].getTransform().getPositionX());
             mWaiter.assertTrue(sphere[i].getTransform().getPositionZ() == cube[i].getTransform().getPositionZ());
@@ -233,9 +262,9 @@ public class PhysicsSimulationTest {
      */
     private GVRSceneObject addSphere(GVRScene scene, ICollisionEvents mCollisionHandler, float x, float y, float z, float mass) {
 
+        //GVRSceneObject sphereObject = meshWithTexture("sphere.obj", "sphere.jpg");
+        GVRSceneObject sphereObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), sphereMesh, sphereTexture);
 
-        GVRSceneObject sphereObject = meshWithTexture("sphere.obj",
-                "sphere.jpg");
         sphereObject.getTransform().setScaleX(0.5f);
         sphereObject.getTransform().setScaleY(0.5f);
         sphereObject.getTransform().setScaleZ(0.5f);
@@ -260,7 +289,8 @@ public class PhysicsSimulationTest {
 
     private GVRSceneObject addCube(GVRScene scene, float x, float y, float z, float mass) {
 
-        GVRSceneObject cubeObject = meshWithTexture("cube.obj", "cube.jpg");
+        //GVRSceneObject cubeObject = meshWithTexture("cube.obj", "cube.jpg");
+        GVRSceneObject cubeObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), cubeMesh, cubeTexture);
 
         cubeObject.getTransform().setPosition(x, y, z);
 
