@@ -9,9 +9,11 @@ import net.jodah.concurrentunit.Waiter;
 import org.gearvrf.GVRAndroidResource;
 import org.gearvrf.GVRBoxCollider;
 import org.gearvrf.GVRContext;
+import org.gearvrf.GVRMesh;
 import org.gearvrf.GVRScene;
 import org.gearvrf.GVRSceneObject;
 import org.gearvrf.GVRSphereCollider;
+import org.gearvrf.GVRTexture;
 import org.gearvrf.physics.GVRRigidBody;
 import org.gearvrf.physics.GVRWorld;
 import org.gearvrf.physics.ICollisionEvents;
@@ -38,11 +40,11 @@ public class PhysicsSimulationTest {
     private Waiter mWaiter;
     GVRWorld world;
 
-    private GVRAndroidResource cubeMesh = null;
-    private GVRAndroidResource cubeTexture = null;
+    private GVRMesh cubeMesh = null;
+    private GVRTexture cubeTexture = null;
 
-    private GVRAndroidResource sphereMesh = null;
-    private GVRAndroidResource sphereTexture = null;
+    private GVRMesh sphereMesh = null;
+    private GVRTexture sphereTexture = null;
 
     @Rule
     public ActivityTestRule<GVRTestableActivity> ActivityRule = new
@@ -63,15 +65,6 @@ public class PhysicsSimulationTest {
 
         gvrTestUtils = new GVRTestUtils(ActivityRule.getActivity(), initCallback);
         gvrTestUtils.waitForOnInit();
-
-        try {
-            cubeMesh = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.obj");
-            cubeTexture = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.jpg");
-            sphereMesh = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.obj");
-            sphereTexture = new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.jpg");
-        } catch (IOException e) {
-
-        }
     }
 
     @Test
@@ -225,12 +218,22 @@ public class PhysicsSimulationTest {
     public void runTest(GVRSceneObject sphere[], GVRSceneObject cube[], int lenght) throws  Exception{
         world.setEnable(false);
         for(int i = 0; i < lenght; i++) {
-            float d = (sphere[i].getTransform().getPositionY() - cube[i].getTransform().getPositionY());
+            float cubeX = cube[i].getTransform().getPositionX();
+            float cubeY = cube[i].getTransform().getPositionY();
+            float cubeZ = cube[i].getTransform().getPositionZ();
+            float sphereX = sphere[i].getTransform().getPositionX();
+            float sphereY = sphere[i].getTransform().getPositionY();
+            float sphereZ = sphere[i].getTransform().getPositionZ();
+
+            //Log.d("runTest", "[" + i + "] cube: " + cubeX + ", " + cubeY + ", " + cubeZ +
+            //        " sphere: " + sphereX + ", " + sphereY + ", " + sphereZ);
+
+            float d = (sphereY - cubeY);
             //sphere is on top of the cube
 
             mWaiter.assertTrue( d <= 1.6f);
-            mWaiter.assertTrue(sphere[i].getTransform().getPositionX() == cube[i].getTransform().getPositionX());
-            mWaiter.assertTrue(sphere[i].getTransform().getPositionZ() == cube[i].getTransform().getPositionZ());
+            mWaiter.assertTrue(sphereX == cubeX);
+            mWaiter.assertTrue(sphereZ == cubeZ);
             //Log.d("PHYSICS", "    Index:" + i + "    Collision distance:" + d);
         }
     }
@@ -269,6 +272,17 @@ public class PhysicsSimulationTest {
      */
     private GVRSceneObject addSphere(GVRScene scene, ICollisionEvents mCollisionHandler, float x, float y, float z, float mass) {
 
+        if (sphereMesh == null) {
+            try {
+                sphereMesh = gvrTestUtils.getGvrContext().loadMesh(
+                        new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.obj"));
+                sphereTexture = gvrTestUtils.getGvrContext().getAssetLoader().loadTexture(
+                        new GVRAndroidResource(gvrTestUtils.getGvrContext(), "sphere.jpg"));
+            } catch (IOException e) {
+
+            }
+        }
+
         GVRSceneObject sphereObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), sphereMesh, sphereTexture);
 
         sphereObject.getTransform().setScaleX(0.5f);
@@ -294,6 +308,17 @@ public class PhysicsSimulationTest {
     }
 
     private GVRSceneObject addCube(GVRScene scene, float x, float y, float z, float mass) {
+
+        if (cubeMesh == null) {
+            try {
+                cubeMesh = gvrTestUtils.getGvrContext().loadMesh(
+                        new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.obj"));
+                cubeTexture = gvrTestUtils.getGvrContext().getAssetLoader().loadTexture(
+                        new GVRAndroidResource(gvrTestUtils.getGvrContext(), "cube.jpg"));
+            } catch (IOException e) {
+
+            }
+        }
 
         GVRSceneObject cubeObject = new GVRSceneObject(gvrTestUtils.getGvrContext(), cubeMesh, cubeTexture);
 
